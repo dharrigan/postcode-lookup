@@ -20,21 +20,21 @@
   [postcode]
   (response->body->map (http-client/get api-endpoint {:query-params {"key" api-key "postcode" postcode}})))
 
+(defn delivery_point->address
+  [dp street town county postcode]
+  {:name (:organisation_name dp)
+   :number (:building_number dp)
+   :street street
+   :town town
+   :county county
+   :postcode postcode})
+
 (defn parse
   [json]
   (let [{:keys [thoroughfares postcode town traditional_county]} json
-        {:keys [thoroughfare_name thoroughfare_descriptor delivery_points]} (first thoroughfares)]
-    (loop [dps delivery_points addresses []]
-      (if (empty? dps)
-        addresses
-        (recur (rest dps)
-               (conj addresses
-                     {:name (:organisation_name (first dps))
-                      :number (:building_number (first dps))
-                      :street (str thoroughfare_name " " thoroughfare_descriptor)
-                      :town town
-                      :county traditional_county
-                      :postcode postcode}))))))
+        {:keys [thoroughfare_name thoroughfare_descriptor delivery_points]} (first thoroughfares)
+        street (str thoroughfare_name " " thoroughfare_descriptor)]
+    (mapv #(delivery_point->address % street town traditional_county postcode) delivery_points)))
 
 (defn strip-empty-values
   [coll]
